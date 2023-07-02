@@ -140,6 +140,62 @@ def realizar_apuesta(ruleta_id):
         
 ##########################################################################
 
+# Endpoint de cierre de apuestas.
+@app.route('/ruletas/<int:ruleta_id>/cierre', methods=['POST'])
+def cerrar_apuestas(ruleta_id):
+
+    '''
+    Esta funcion se engarga de cerrar la ruleta.
+
+    '''
+
+    # Crear numero ganador.
+    numero_ganador = utils.numero_ganador()
+
+    # Crear color ganador.
+    color_ganador = utils.color_ganador(numero_ganador)
+
+    # Obtener las apuestas de la ruleta
+    query = "SELECT * FROM apuestas WHERE id_ruleta = %s"
+    cursor.execute(query, (ruleta_id,))
+    apuestas = cursor.fetchall()
+
+    # Variable para guardar resultados
+    Ganancia = 0
+
+    # Calcular resultados
+    for apuesta in apuestas:
+
+        apuesta_id = apuesta[0]
+        usuario_id = apuesta[6]
+        valor_apuesta = apuesta[2]
+        tipo_apuesta = apuesta[3]
+
+        if tipo_apuesta == 'numero':
+
+            if apuesta[4] == numero_ganador:
+
+                Ganancia = valor_apuesta * 5
+
+        elif tipo_apuesta == 'color':
+
+            if apuesta[5] == color_ganador:
+
+                Ganancia = valor_apuesta * 1.8
+
+
+    # Marcar la ruleta como cerrada
+    cursor.execute("UPDATE ruletas SET estado = 0 WHERE id = %s", (ruleta_id,))
+    
+    # Confirmar los cambios en la base de datos
+    db.commit()
+    cursor.close()
+    
+    return jsonify({'mensaje': 'Apuestas cerradas', 'numero_ganador' : numero_ganador, 'color_ganador' : color_ganador,'Usuario' : usuario_id ,'Apuesta' : apuesta_id,'Valor apostado' : valor_apuesta,'Ganancia' :  Ganancia})
+
+
+
+
 
 # Iniciar el servidor de desarrollo uvicorn
 if __name__ == "__main__":
