@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import utils
 import mysql.connector
+import json
 
 
 # Configura la conexión a la base de datos
@@ -28,10 +29,10 @@ def crear_ruleta():
 
     '''
     
-    # Crear el id
+    # Crear el id.
     ruleta_id = utils.generar_id()
     
-    # Almacenar la nueva ruleta en la base de datos
+    # Almacenar la nueva ruleta en la base de datos.
     query = "INSERT INTO ruletas (id, estado) VALUES (%s, %s)"
     values = (ruleta_id, 0)
     cursor.execute(query, values)
@@ -50,7 +51,7 @@ def abrir_ruleta(ruleta_id):
 
     '''
 
-    # Buscar el id en la tabla ruletas
+    # Buscar el id en la tabla ruletas.
     query = "SELECT estado FROM ruletas WHERE id = %s"
     cursor.execute(query, (ruleta_id,))
     ruleta = cursor.fetchone()
@@ -58,7 +59,7 @@ def abrir_ruleta(ruleta_id):
     # Generar la apertura de la ruleta si es que existe y que este en estado igual a 0.
     if ruleta and ruleta[0] == 0:
 
-        # Update al estado de la ruleta
+        # Update al estado de la ruleta.
         query_estado = "UPDATE ruletas SET estado = 1 WHERE id = %s"
         cursor.execute(query_estado, (ruleta_id,))
         db.commit()
@@ -69,7 +70,75 @@ def abrir_ruleta(ruleta_id):
 
         return jsonify({'estado': 'Apertura denegada'})
 
+##########################################################################
 
+# Endpoint de apuesta a un numero o color.
+@app.route('/ruletas/<ruleta_id>/apuesta', methods=['POST'])
+def realizar_apuesta(ruleta_id):
+
+    '''
+    Esta funcion se encarga de realizar la apuesta de un numero o un color.
+
+    '''
+
+    # Buscar el id en la tabla ruletas.
+    query = "SELECT estado FROM ruletas WHERE id = %s"
+    cursor.execute(query, (ruleta_id,))
+    ruleta = cursor.fetchone()
+
+    # Generar la apertura de la ruleta si es que existe y que este en estado igual a 0.
+    if ruleta and ruleta[0] == 1:
+
+        # Obtener los headers y guardarlos en variables.
+        usuario_id = request.headers.get('User')
+        apuesta =  json.loads(request.headers.get('Apuesta')) 
+        tipo = apuesta['tipo']
+        valor = apuesta['valor']
+        color = apuesta['color'] 
+        numero = apuesta['numero'] 
+
+        # Verificar si es un numero o un color y que el valor de la apuesta no supere los 10000.
+        if tipo in ['numero', 'color'] and valor <= 10000:
+            
+            # Si el tipo de apuesta es un numero.
+            if tipo == 'numero': 
+
+                    # Verificar que el numero este en el rango (0,36)
+                    if numero >= 0 and numero <= 36:
+
+                        # Insertar apuesta
+                        quere_apuesta = "INSERT INTO apuestas(id_apuesta,id_ruleta, valor, tipo, numero, id_usuario) VALUES(%s, %s, %s, %s, %s, %s)"
+                        cursor.execute(quere_apuesta,(utils.generar_id(),ruleta_id, valor, tipo, numero, usuario_id,))
+                        db.commit()
+
+                        return jsonify({'estado':'Apuesta realizada'})
+                    
+                    else:
+
+                        return jsonify({'mensaje':'El numero a apostar es incorrecto'})
+
+            # Si el tipo de apuesta es un color.
+            elif tipo == 'color':
+
+                # Si el color es negro o rojo.
+                if color in ['rojo','negro']:
+
+                    # Insertar apuesta
+                    quere_apuesta = "INSERT INTO apuestas(id_apuesta,id_ruleta, valor, tipo, color, id_usuario) VALUES(%s, %s, %s, %s, %s, %s)"
+                    cursor.execute(quere_apuesta,(utils.generar_id(),ruleta_id, valor, tipo, color, usuario_id,))
+                    db.commit()
+
+                    return jsonify({'estado':'Apuesta realizada'})
+            
+                else:
+
+                    return jsonify({'mensaje':'El color ingresado es incorrecto'})
+
+        else:
+
+            return jsonify({'mensaje':'Tipo de apuesta o valor de la apuesta invalidos.'})
+        
+##########################################################################
 
 
 # Iniciar el servidor de desarrollo uvicorn
