@@ -15,7 +15,7 @@ db = mysql.connector.connect(
 cursor = db.cursor()
 
 
-# Crear una instancia con FastAPI
+# Crear una instancia con Flask
 app = Flask(__name__)
 
 ##########################################################################
@@ -194,9 +194,6 @@ def cerrar_apuestas(ruleta_id):
     return jsonify({'mensaje': 'Apuestas cerradas', 'numero_ganador' : numero_ganador, 'color_ganador' : color_ganador,'Usuario' : usuario_id ,'Apuesta' : apuesta_id,'Valor apostado' : valor_apuesta,'Ganancia' :  Ganancia})
 
 
-
-
-
-# Iniciar el servidor de desarrollo uvicorn
+# Iniciar el servidor
 if __name__ == "__main__":
     app.run(debug=True, port=3007)
